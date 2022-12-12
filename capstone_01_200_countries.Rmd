@@ -1,0 +1,215 @@
+---
+title: "Gapminder: 200 Countries, 200 Years"
+subtitle: "Capstone project: BIDA 302"
+author: "Matheus Buarque"
+
+
+output: html_document
+---
+
+
+$~$
+$~$
+$~$
+
+
+### These are the packeges I used on this project
+
+Package load:
+
+```{r setup, message=FALSE}
+
+library(dplyr)
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+options(scipen=999)
+install.packages('gganimate')
+
+
+```
+
+$~$
+
+### Here's where I start importing the data using read() function, pivot_longer(), and mutate() to avoid problems when plotting.
+
+```{r warning=FALSE, message=FALSE}
+gdp <- read_csv("data/income_per_person_gdppercapita_ppp_inflation_adjusted.csv") %>% 
+  pivot_longer(-country, names_to = "year", values_to = "income_person") %>% 
+  mutate(year = as.integer(year)) #here I read, pivot, and clean my data at once assignt it to gdp (income)
+
+gdp
+
+
+life_expectancy <- read_csv("data/life_expectancy_years.csv") %>% 
+  pivot_longer(-country, names_to = "year", values_to = "life_exp") %>% 
+  mutate(year = as.integer(year))
+
+life_expectancy
+
+population <- read_csv("data/population_total.csv") %>% 
+  pivot_longer(-country, names_to = "year", values_to = "population") %>% 
+  mutate(year = as.integer(year)) %>% 
+  mutate(population = as.double(population))
+
+population
+
+
+geo_location <- read_excel("data/Data Geographies - v1 - by Gapminder.xlsx", sheet = "list-of-countries-etc") %>% 
+  select("name", "four_regions") %>% 
+  dplyr::rename(country = name)
+
+geo_location
+
+
+```
+
+$~$
+$~$
+$~$
+
+
+### Here I join the tables using left_join() function.
+
+```{r }
+
+table1 <- geo_location %>% 
+  left_join(gdp,by = "country") %>% 
+  left_join(life_expectancy, by = c("country","year")) %>% 
+  left_join(population, by = c("country","year"))
+
+```
+
+$~$
+$~$
+$~$
+
+### With ggplot() I start creating and custumizing my plot
+
+```{r warning=FALSE}
+
+table1810 <- table1 %>% 
+  filter(year == "1810",
+         na.rm = TRUE) %>% #to avoid NA values
+ggplot(aes(x = income_person, 
+             y = life_exp, 
+             colour = four_regions,
+             size = population)) +
+    geom_point() +
+    labs(title = "Life expectancy",
+       subtitle = "1810",
+       caption = "Source: Gapminder",
+       y = "Life expectancy",
+       x = "Income",
+       color = "Continent",
+       size = "Population") + #adding labels to my plot
+    scale_y_continuous(
+      limits = c(25, 75),
+      breaks = c(25, 50, 75),
+      minor_breaks = NULL) + #minor_braks remove the unnecessary limits on my scale
+    scale_x_continuous(
+      limits = c(400, 40000),
+      breaks = c(400, 4000, 40000),
+      minor_breaks = NULL,
+      trans = "log10") #the argument trans = "log10" multiply my y axis by 10 (400, 4000, 40000), giving them the
+                       #space ("block")
+  
+table1810
+
+table1996 <- table1 %>% 
+  filter(year == "1996",
+         na.rm = TRUE) %>% 
+ggplot(aes(x = income_person, 
+             y = life_exp, 
+             colour = four_regions,
+             size = population)) +
+    geom_point()+
+    labs(title = "Life expectancy",
+       subtitle = "1996",
+       caption = "Source: Gapminder",
+       y = "Life expectancy",
+       x = "Income",
+       color = "Continent",
+       size = "Population") +
+    scale_y_continuous(
+      limits = c(25, 75),
+      breaks = c(25, 50, 75),
+      minor_breaks = NULL) +
+    scale_x_continuous(
+      limits = c(400, 40000),
+      breaks = c(400, 4000, 40000),
+      minor_breaks = NULL,
+      trans = "log10")
+
+table1996
+
+table2009 <- table1 %>% 
+  filter(year == "2009",
+         na.rm = TRUE) %>%  
+ggplot(aes(x = income_person, 
+             y = life_exp, 
+             colour = four_regions,
+             size = population)) +
+    geom_point() +
+    labs(title = "Life expectancy",
+       subtitle = "2009",
+       caption = "Source: Gapminder",
+       y = "Life expectancy",
+       x = "Income",
+       color = "Continent",
+       size = "Population") +
+    scale_y_continuous(
+      limits = c(25, 75),
+      breaks = c(25, 50, 75),
+      minor_breaks = NULL) +
+    scale_x_continuous(
+      limits = c(400, 40000),
+      breaks = c(400, 4000, 40000),
+      minor_breaks = NULL,
+      trans = "log10")
+  
+
+table2009
+
+
+```
+
+$~$
+$~$
+
+### And last, I use gganimate and scales to create a gif plot, simpler than Hans Rosling but with the same idea of showing the progress of life-expectancy over the years.
+
+```{r warning=FALSE, message=FALSE}
+library(gganimate)
+library(scales)
+
+g <- ggplot(table1, aes(x = income_person, 
+             y = life_exp, 
+             colour = four_regions,
+             size = population,
+             label = as.character(round(year, 2)))) + #here I just copied the labels, but used
+                                                     #as.character(round(year, 2)) to hide decimals in my title
+  geom_point(show.legend = TRUE, alpha = 0.17) + #here I enable the legends
+  scale_color_viridis_d() +
+  scale_size(range = c(2, 15)) +
+  labs(caption = "Source: Gapminder",
+       y = "Life expectancy",
+       x = "Income",
+       color = "Continent",
+       size = "Population") +
+  scale_y_continuous(
+      limits = c(25, 75),
+      breaks = c(25, 50, 75),
+      minor_breaks = NULL) +
+  scale_x_continuous(
+      limits = c(400, 40000),
+      breaks = c(400, 4000, 40000),
+      minor_breaks = NULL,
+      trans = "log10")
+
+g + transition_time(year) +
+  labs(title = "Year: {frame_time}") #transition_time(year) create a gif animation, layer over layer according to year
+
+
+
+```
